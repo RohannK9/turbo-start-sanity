@@ -207,10 +207,28 @@ export const queryBlogIndexPage = defineQuery(`
   }
 `);
 
+// Still used by the markdown export; the interactive search no longer fetches this.
 export const queryAllBlogDataForSearch = defineQuery(`
   *[_type == "blog" && defined(slug.current) && (seoHideFromLists != true)] | order(coalesce(publishedAt, _createdAt) desc, _createdAt desc) {
     ${blogCardFragment}
   }
+`);
+
+// Explicit namespace guards also protect scripts that accidentally use raw perspective.
+const publishedBlogFilter = `_type == "blog" && !(_id in path("drafts.**")) && !(_id in path("versions.**"))`;
+const searchBlogFragment = `
+  ${blogCardFragment},
+  seoNoIndex,
+  seoHideFromLists
+`;
+
+export const querySearchBlogById = defineQuery(`
+  *[${publishedBlogFilter} && _id == $id][0]{${searchBlogFragment}}
+`);
+
+// Keyset pagination avoids repeatedly scanning/skipping earlier pages during backfill.
+export const querySearchBlogBatch = defineQuery(`
+  *[${publishedBlogFilter} && _id > $afterId] | order(_id asc)[0...100]{${searchBlogFragment}}
 `);
 
 export const queryBlogSlugPageData = defineQuery(`

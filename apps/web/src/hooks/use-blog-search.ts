@@ -2,45 +2,49 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { useDebounce } from "@/hooks/use-debounce";
-import type { Blog } from "@/types";
+import type { BlogSearchResponse } from "@/lib/blog-search-response";
 
-const SEARCH_DEBOUNCE_MS = 400;
-const CACHE_STALE_TIME_MS = 30_000;
-
-async function searchBlog(query: string, signal: AbortSignal) {
-  if (!query.trim()) {
-    return [];
-  }
-
-  const response = await fetch(
-    `/api/blog/search?q=${encodeURIComponent(query)}`,
-    { signal }
-  );
-
-  if (!response.ok) {
-    throw new Error("Failed to search");
-  }
-
-  return response.json() as Promise<Blog[]>;
-}
-
-export function useBlogSearch() {
+export function useBlogSearch(category: string) {
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedQuery = useDebounce(searchQuery, SEARCH_DEBOUNCE_MS);
-
-  const hasQuery = debouncedQuery.trim().length > 0;
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["blog-search", debouncedQuery],
-    queryFn: ({ signal }) => searchBlog(debouncedQuery, signal),
-    enabled: hasQuery,
-    staleTime: CACHE_STALE_TIME_MS,
+  const debouncedQuery = useDebounce(searchQuery, 400).trim();
+  const key = JSON.stringify([debouncedQuery, category]);
+  const [selection, setSelection] = useState({ key: "", page: 1 });
+  // A new query/category starts at page one without an effect fetching the old page first.
+  const page = selection.key === key ? selection.page : 1;
+  const hasQuery = searchQuery.trim().length > 0;
+  const { data, isFetching, error } = useQuery({
+    queryKey: ["blog-search", debouncedQuery, category, page],
+    queryFn: async ({ signal }): Promise<BlogSearchResponse> => {
+      const params = new URLSearchParams({
+        q: debouncedQuery,
+        category,
+        page: String(page),
+      });
+      const response = await fetch(`/api/blog/search?${params}`, { signal });
+      if (!response.ok) {
+        throw new Error(
+          response.status === 429
+            ? "Too many searches. Please wait a minute before trying again."
+            : "Search is temporarily unavailable. Please try again later."
+        );
+      }
+      return response.json();
+    },
+    enabled: hasQuery && debouncedQuery.length > 0,
+    staleTime: 30_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
   return {
     searchQuery,
     setSearchQuery,
-    results: data ?? [],
-    isSearching: isLoading,
-    error,
     hasQuery,
+    error,
+    results: data?.results ?? [],
+    totalHits: data?.totalHits ?? 0,
+    totalPages: data?.totalPages ?? 0,
+    page,
+    setPage: (next: number) => setSelection({ key, page: next }),
+    isSearching: isFetching || searchQuery.trim() !== debouncedQuery,
   };
 }

@@ -9,6 +9,10 @@ import type { Blog } from "@/types";
 type BlogSearchResultsProps = Readonly<{
   className?: string;
   results: Blog[];
+  page: number;
+  totalPages: number;
+  totalHits: number;
+  onPageChange: (page: number) => void;
   isSearching: boolean;
   hasQuery: boolean;
   searchQuery: string;
@@ -79,14 +83,12 @@ function EmptySearchState({
   );
 }
 
-function ErrorState({ query }: Readonly<{ query: string }>) {
+function ErrorState({ message }: Readonly<{ message: string }>) {
   return (
     <div className="grid gap-6">
-      <SearchResultsHeader count={0} query={query} />
       <h3 className={cn(STATE_TITLE, "text-destructive")}>Search failed</h3>
       <p className="max-w-[70ch] text-pretty text-muted-foreground">
-        We encountered an error while searching for <Term>{query}</Term>. Please
-        try again.
+        {message}
       </p>
     </div>
   );
@@ -99,6 +101,10 @@ function LoadingState() {
 export function BlogSearchResults({
   className,
   results,
+  page,
+  totalPages,
+  totalHits,
+  onPageChange,
   isSearching,
   hasQuery,
   searchQuery,
@@ -122,7 +128,7 @@ export function BlogSearchResults({
       <section className={cn("min-h-full", className)}>
         <StateFrame>
           {error ? (
-            <ErrorState query={searchQuery} />
+            <ErrorState message={error.message} />
           ) : (
             <EmptySearchState onClear={onClear} query={searchQuery} />
           )}
@@ -133,8 +139,34 @@ export function BlogSearchResults({
 
   return (
     <section className={cn("mt-8 grid gap-6", className)}>
-      <SearchResultsHeader count={results.length} query={searchQuery} />
+      <SearchResultsHeader count={totalHits} query={searchQuery} />
       <BlogList blogs={results} />
+      {totalPages > 1 && (
+        <nav
+          aria-label="Search results pagination"
+          className="flex items-center gap-5"
+        >
+          <button
+            className={cn(ACTION_CLASS, "disabled:opacity-40")}
+            disabled={page <= 1}
+            onClick={() => onPageChange(page - 1)}
+            type="button"
+          >
+            Previous
+          </button>
+          <span aria-live="polite">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className={cn(ACTION_CLASS, "disabled:opacity-40")}
+            disabled={page >= totalPages}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Next
+          </button>
+        </nav>
+      )}
     </section>
   );
 }

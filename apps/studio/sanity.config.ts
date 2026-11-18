@@ -68,14 +68,22 @@ export default defineConfig({
     assist(),
   ],
   document: {
+    actions: (prev, context) =>
+      context.schemaType === "subscriber"
+        ? prev.filter((action) => action.action === "delete")
+        : prev,
     newDocumentOptions: (prev, { creationContext }) => {
+      // Signups must use the API's deterministic, non-public IDs.
+      const options = prev.filter(
+        (template) => template.templateId !== "subscriber"
+      );
       const { type } = creationContext;
       if (type === "global") {
-        return prev.filter(
+        return options.filter(
           (template) => !hiddenTemplateIds.has(template?.templateId)
         );
       }
-      return prev;
+      return options;
     },
   },
   form: {

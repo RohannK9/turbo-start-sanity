@@ -21,6 +21,7 @@ export interface NewsletterTestimonial {
 
 export interface SubscribeNewsletterProps {
   action?: ComponentProps<"form">["action"];
+  feedback?: { message: string; isError: boolean };
   helperText?: RichTextValue;
   method?: ComponentProps<"form">["method"];
   onSubmit?: ComponentProps<"form">["onSubmit"];
@@ -103,6 +104,7 @@ function TestimonialPanel({
 
 export function SubscribeNewsletter({
   action,
+  feedback,
   title,
   subTitle,
   helperText,
@@ -158,12 +160,22 @@ export function SubscribeNewsletter({
                   aria-label="Email address"
                   className="w-full min-w-0 flex-1 bg-transparent py-1.5 text-base text-foreground outline-none [--autofill-bg:var(--muted)] placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
                   name="email"
+                  autoComplete="email"
+                  maxLength={254}
                   placeholder="Enter your email address"
                   required
                   type="email"
                 />
                 <SubscribeNewsletterButton />
               </form>
+              {feedback?.message && (
+                <p
+                  className="text-sm"
+                  role={feedback.isError ? "alert" : "status"}
+                >
+                  {feedback.message}
+                </p>
+              )}
               {helperText && (
                 <RichText
                   className="text-muted-foreground text-sm leading-5 [&_a]:rounded-none [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:decoration-solid"

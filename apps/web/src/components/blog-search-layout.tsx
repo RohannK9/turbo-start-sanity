@@ -8,18 +8,30 @@ import { BlogSearchResults } from "@/components/blog-search-results";
 import { useBlogSearch } from "@/hooks/use-blog-search";
 
 type BlogSearchLayoutProps = {
+  activeCategory: string;
   categoryFilter: ReactNode;
   featured: ReactNode;
   list: ReactNode;
 };
 
 export function BlogSearchLayout({
+  activeCategory,
   categoryFilter,
   featured,
   list,
 }: Readonly<BlogSearchLayoutProps>) {
-  const { searchQuery, setSearchQuery, results, isSearching, hasQuery, error } =
-    useBlogSearch();
+  const {
+    searchQuery,
+    setSearchQuery,
+    results,
+    isSearching,
+    hasQuery,
+    error,
+    page,
+    setPage,
+    totalPages,
+    totalHits,
+  } = useBlogSearch(activeCategory);
 
   const isDeadEnd =
     hasQuery && !isSearching && (Boolean(error) || results.length === 0);
@@ -37,8 +49,8 @@ export function BlogSearchLayout({
     if (results.length === 0) {
       return `No articles found for ${searchQuery}`;
     }
-    const plural = results.length === 1 ? "" : "s";
-    return `${results.length} article${plural} found for ${searchQuery}`;
+    const plural = totalHits === 1 ? "" : "s";
+    return `${totalHits} article${plural} found for ${searchQuery}`;
   })();
 
   return (
@@ -73,6 +85,10 @@ export function BlogSearchLayout({
           {hasQuery ? (
             <BlogSearchResults
               error={error}
+              page={page}
+              onPageChange={setPage}
+              totalPages={totalPages}
+              totalHits={totalHits}
               hasQuery={hasQuery}
               isSearching={isSearching}
               onClear={() => setSearchQuery("")}
