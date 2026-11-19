@@ -38,7 +38,6 @@ export async function readIndexMembership(
   if (
     !body ||
     typeof body !== "object" ||
-    "message" in body ||
     !("results" in body) ||
     !Array.isArray(body.results) ||
     body.results.length !== 1
@@ -46,6 +45,16 @@ export async function readIndexMembership(
     throw new Error("Unexpected index response");
   }
   const record: unknown = body.results[0];
+  if (
+    "message" in body &&
+    !(
+      record === null &&
+      typeof body.message === "string" &&
+      body.message.trim() === `ObjectID ${objectID} does not exist.`
+    )
+  ) {
+    throw new Error("Unexpected index response");
+  }
   if (record === null) return false;
   if (
     record &&

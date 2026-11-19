@@ -96,8 +96,20 @@ test("membership reader distinguishes missing records from provider failures", a
   assert.equal(await readIndexMembership(config, "post-id", signal), true);
   mock.mock.mockImplementation(async () => Response.json({ results: [null] }));
   assert.equal(await readIndexMembership(config, "post-id", signal), false);
+  mock.mock.mockImplementation(async () =>
+    Response.json({
+      results: [null],
+      message: "ObjectID post-id does not exist. ",
+    })
+  );
+  assert.equal(await readIndexMembership(config, "post-id", signal), false);
   for (const body of [
     { message: "Index missing", results: [null] },
+    { message: "ObjectID other-id does not exist. ", results: [null] },
+    {
+      message: "ObjectID post-id does not exist. ",
+      results: [{ objectID: "post-id" }],
+    },
     { results: [] },
     { results: [{ objectID: "other" }] },
   ]) {

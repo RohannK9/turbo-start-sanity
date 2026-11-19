@@ -3,9 +3,11 @@
 Production URL: https://roboto-assessment-kappa.vercel.app/
 
 These results were collected on my Mac against my Sanity project (`lw22l8jn`,
-`production`) and Algolia index (`988QB05RUC`, `blog_posts`). The search HTTP
-requests below were made against localhost. Production deployment of these
-changes and real Sanity webhook deliveries are not yet evidenced in this file.
+`production`) and Algolia index (`988QB05RUC`, `blog_posts`). The earlier search
+HTTP requests below were made against localhost; the Studio recording section
+also includes a production draft-exclusion search. Production deployment of the
+latest Studio changes and real Sanity webhook deliveries are not yet evidenced
+in this file.
 
 ## Newsletter browser check
 
@@ -277,6 +279,113 @@ compile-only mode. Node emitted localStorage experimental warnings during page
 data collection, but the build completed and returned to the shell. A successful
 local build does not by itself prove the deployed site's behaviour.
 
+## Studio recording — verification items 7 and 8
+
+Recorded on 19 November 2026 after reviewing the Studio view/schema, shared
+Sanity queries, search API, and Algolia synchronization code.
+
+Recording: [Captioned Studio demonstration (local MP4)](https://drive.google.com/file/d/1oH82QXvjWNI7GrmAtDSjHM_NcJihkXkW/view?usp=sharing)
+
+
+
+Environment: local Sanity Studio at `http://localhost:3333`, connected to project
+`lw22l8jn`, dataset `production`, and the real Algolia `blog_posts` index.
+Capture: Playwright 1.64.1 page screencast, 1600 × 1000 at 25 fps. The MP4 adds a
+120-pixel caption band below the viewport. The extra static ending from encoder
+finalization was trimmed; editor actions remain continuous and at normal speed.
+
+The completed take asserted and captured:
+
+- Editor and SEO & Index side by side for the same published post.
+- Title updates while typing, including intermediate counts of 5 and 9, then
+  `Live SEO preview demo` at 21 characters.
+- Clearing the title override restores `Roboto Webhook Verification Updated
+  part 2` at 42 characters.
+- `A short description.` fails at 20 characters; the supplied 154-character
+  description passes. Adding/removing `!` produces 154 → 155 → 154.
+- These changes occur without publishing, navigation, or index refresh during
+  typing. The recording's first index request occurs at 96.60 seconds.
+- The published post shows `Found in Algolia` with Object ID
+  `d705b32a-980c-4aa3-8849-4f601727fe27`.
+- Studio navigation opens `Roboto Recording Draft` in the same browser page.
+  Its distinct Object ID is `3d6c5938-21b0-4751-8256-b2818eb8c2ad`, and the panel
+  shows `Not found in Algolia, as expected. This post is not published.`
+
+The recorded lookups returned HTTP 200. The draft response was:
+
+```json
+{
+  "results": [null],
+  "message": "ObjectID 3d6c5938-21b0-4751-8256-b2818eb8c2ad does not exist. "
+}
+```
+
+Preparation exposed a response-handling bug: the panel rejected every response
+with a `message`, including this legitimate missing-object result. The reader
+now accepts this exact message only when it matches the requested ID and the
+single result is null. Other messages, malformed responses, authentication
+failures, and network failures still produce unknown membership. No requests
+or UI results were mocked for the recording.
+
+Validation for that fix:
+
+```sh
+node --experimental-strip-types --test apps/studio/components/seo-index/seo-index.test.mjs
+pnpm --filter studio check-types
+pnpm exec biome lint apps/studio/components/seo-index/read-index.ts apps/studio/components/seo-index/seo-index.test.mjs
+pnpm exec biome format apps/studio/components/seo-index/read-index.ts apps/studio/components/seo-index/seo-index.test.mjs
+```
+
+All six tests passed, TypeScript passed, and the two changed files passed lint
+and format checks. Node reported its existing module-type warning, and Biome
+reported the existing configuration deprecation notice.
+
+Independent inspection commands and actual outputs:
+
+```sh
+pnpm --filter web search:inspect d705b32a-980c-4aa3-8849-4f601727fe27
+```
+
+```json
+{
+  "found": true,
+  "objectID": "d705b32a-980c-4aa3-8849-4f601727fe27",
+  "title": "Roboto Webhook Verification Updated part 2"
+}
+```
+
+```sh
+pnpm --filter web search:inspect 3d6c5938-21b0-4751-8256-b2818eb8c2ad
+```
+
+```json
+{
+  "found": false,
+  "objectID": "3d6c5938-21b0-4751-8256-b2818eb8c2ad"
+}
+```
+
+Separately, entering `Roboto Recording Draft` in the production website's blog
+search triggered this request:
+
+```text
+GET https://roboto-assessment-kappa.vercel.app/api/blog/search?q=Roboto+Recording+Draft&category=&page=1
+HTTP 200
+```
+
+```json
+{"results":[],"page":1,"totalPages":0,"totalHits":0}
+```
+
+The screenshot, response, per-scene screenshots, timing log, and restoration
+readback are retained locally in `apps/web/recordings/evidence/`.
+
+After recording, both SEO overrides were restored to their original unset
+state. The temporary draft of the published verification post was removed only
+after confirming its content matched the original; its published revision did
+not change. `Roboto Recording Draft` remains present only as an unpublished
+`drafts.` document. No demonstration changes were published.
+
 ## Remaining assessment evidence
 
 These items are pending; they are not claimed as passed:
@@ -285,15 +394,13 @@ These items are pending; they are not claimed as passed:
 - Publish a test blog and show it appears in Algolia.
 - Publish an edit and show the same object ID has the updated content.
 - Unpublish/delete and show the object disappears.
-- Leave a deliberate unpublished draft and prove it never appears in search.
 - Replay the same webhook delivery and prove it leaves one entry.
 - Send an unauthenticated request to the deployed webhook and capture its rejection.
 - Exercise category filtering and pagination through the website itself.
 - Verify deployed search, newsletter signup and rate-limit behaviour.
-- Build and deploy the Studio SEO & Index view.
-- Record the Studio preview/counts changing as the editor types, before publish.
-- Record the panel reporting one indexed post and one missing post, including
-  the discrepancy explanations. The required recording must be under three minutes.
+- Deploy and verify the latest Studio SEO & Index view, including the lookup fix.
+- Upload the completed local Studio recording and add an accessible sharing link.
+- Other out-of-sync discrepancy states were not demonstrated in this recording.
 
 Replace the relevant pending items with actual commands, responses, delivery
 records and the recording link as each is completed. The PageSpeed bonus has
