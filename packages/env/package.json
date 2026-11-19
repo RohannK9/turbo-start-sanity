@@ -21,6 +21,7 @@
   "exports": {
     "./client": "./src/client.ts",
     "./constants": "./src/constants.ts",
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    "./studio": "./src/studio.ts"
   }
 }

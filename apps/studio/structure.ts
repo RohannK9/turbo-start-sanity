@@ -13,9 +13,13 @@ import {
   TrendingUpDown,
   User,
 } from "lucide-react";
-import type { StructureBuilder } from "sanity/structure";
+import type {
+  DefaultDocumentNodeResolver,
+  StructureBuilder,
+} from "sanity/structure";
 
 import { createSlugBasedStructure } from "@/components/nested-pages-structure";
+import { SeoIndexView } from "@/components/seo-index/view";
 import type { SchemaType, SingletonType } from "@/schemaTypes/index";
 import { getTitleCase } from "@/utils/helper";
 
@@ -143,3 +147,17 @@ export const structure = (S: StructureBuilder) =>
             ])
         ),
     ]);
+
+// Applies to individual blogs, including documents opened through an edit intent.
+export const defaultDocumentNode: DefaultDocumentNodeResolver = (
+  S,
+  { schemaType }
+) =>
+  S.document().views(
+    schemaType === "blog"
+      ? [
+          S.view.form().title("Editor"),
+          S.view.component(SeoIndexView).title("SEO & Index"),
+        ]
+      : [S.view.form()]
+  );
